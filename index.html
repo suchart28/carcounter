@@ -45,14 +45,14 @@
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
 
-        // *** ใส่ API Key ของ TomTom ที่นี่ ***
+     // *** ใส่ API Key ของ TomTom ที่นี่ ***
         var tomtomApiKey = '18qdMExwD6avJjZWkAR9BWkFTrtzfXNw'; 
         
-        // แผนที่จราจร (TomTom Traffic Flow)
-        var trafficLayer = L.tileLayer(`https://api.tomtom.com/traffic/map/4/tile/flow/relative/{z}/{x}/{y}.png?key=${tomtomApiKey}`, {
+        // แผนที่จราจร (TomTom Traffic Flow) - เปลี่ยนเป็น absolute และบังคับแสดงทันที
+        var trafficLayer = L.tileLayer(`https://api.tomtom.com/traffic/map/4/tile/flow/absolute/{z}/{x}/{y}.png?key=${tomtomApiKey}`, {
             attribution: '&copy; TomTom Traffic',
-            opacity: 0.8 // ปรับความโปร่งใสของเส้นจราจรไม่ให้ทึบเกินไป
-        });
+            opacity: 0.8 
+        }).addTo(map); // <-- การเติม .addTo(map) ตรงนี้คือการสั่งให้โชว์ตั้งแต่เริ่มครับ
 
         // กลุ่ม Layer สำหรับ หมุด และ Heatmap
         var markerLayerGroup = L.layerGroup().addTo(map); // ให้แสดงหมุดตั้งแต่เริ่ม
