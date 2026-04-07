@@ -36,13 +36,46 @@
         // 1. ศูนย์กลาง จ.ขอนแก่น
         var map = L.map('map').setView([16.4322, 102.8236], 12);
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        // ==========================================
+        // ส่วนจัดการ Layer (ชั้นข้อมูลแผนที่)
+        // ==========================================
+        
+        // แผนที่พื้นฐาน (OpenStreetMap)
+        var osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
 
+        // *** ใส่ API Key ของ TomTom ที่นี่ ***
+        var tomtomApiKey = '18qdMExwD6avJjZWkAR9BWkFTrtzfXNw'; 
+        
+        // แผนที่จราจร (TomTom Traffic Flow)
+        var trafficLayer = L.tileLayer(`https://api.tomtom.com/traffic/map/4/tile/flow/relative/{z}/{x}/{y}.png?key=${tomtomApiKey}`, {
+            attribution: '&copy; TomTom Traffic',
+            opacity: 0.8 // ปรับความโปร่งใสของเส้นจราจรไม่ให้ทึบเกินไป
+        });
+
+        // กลุ่ม Layer สำหรับ หมุด และ Heatmap
+        var markerLayerGroup = L.layerGroup().addTo(map); // ให้แสดงหมุดตั้งแต่เริ่ม
+        var heatLayerGroup = L.layerGroup().addTo(map);   // ให้แสดง Heatmap ตั้งแต่เริ่ม
+
+        // สร้างกล่องเมนูควบคุม Layer มุมขวาบน
+        var baseMaps = {
+            "แผนที่ปกติ (OSM)": osmLayer
+        };
+        var overlayMaps = {
+            "📌 จุดปริมาณรถ": markerLayerGroup,
+            "🔥 แผนที่ความร้อน (Heatmap)": heatLayerGroup,
+            "🚗 สภาพจราจร (TomTom)": trafficLayer
+        };
+        L.control.layers(baseMaps, overlayMaps, { collapsed: false }).addTo(map);
+
+
+        // ==========================================
+        // ส่วนดึงข้อมูลและปักหมุด
+        // ==========================================
         var csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTBl_7t5r5vFUW_QbxVF4h2FxfAaPP7vdGvXEsJ8kMxAZ0wZHlM42KPCCnjq0yTlXSyaPs1-kpyy8GP/pub?gid=2023562744&single=true&output=csv';
 
-        // 2. ฟังก์ชันกำหนดสีแบบไล่ระดับ (Gradient)
+        // ฟังก์ชันกำหนดสีวงกลม
         function getColor(cars) {
             if (cars >= 3000) return '#FF0000'; // แดง
             if (cars >= 2500) return '#FF4500'; // แดงอมส้ม
@@ -74,11 +107,9 @@
                     if (!isNaN(lat) && !isNaN(lng)) {
                         
                         var fillColor = getColor(carsPerHour);
-
-                        // เก็บข้อมูลทำ Heatmap
                         heatPoints.push([lat, lng, carsPerHour]);
 
-                        // 3. ปรับหมุดให้เล็กลง และย้ายตัวเลขมาไว้ด้านนอกวงกลม
+                        // 2. ปรับป้ายตัวเลขเป็น ป้ายขาว ตัวเลขดำ
                         var iconHtml = `
                             <div style="position: relative; display: flex; align-items: center;">
                                 <div style="
@@ -91,13 +122,13 @@
                                 "></div>
                                 <div style="
                                     margin-left: 6px;
-                                    background: rgba(255, 255, 255, 0.85);
+                                    background: #ffffff;
                                     padding: 2px 6px;
                                     border-radius: 4px;
                                     font-size: 13px;
                                     font-weight: bold;
-                                    color: ${fillColor};
-                                    border: 1px solid ${fillColor};
+                                    color: #000000; 
+                                    border: 1px solid #cccccc;
                                     box-shadow: 0 1px 3px rgba(0,0,0,0.3);
                                     white-space: nowrap;
                                 ">${carsPerHour.toLocaleString()}</div>
@@ -107,14 +138,15 @@
                         var customIcon = L.divIcon({
                             html: iconHtml,
                             className: 'custom-pin-container',
-                            iconSize: [100, 20], // เผื่อความกว้างให้ป้ายตัวเลข
-                            iconAnchor: [8, 8],  // ให้จุดศูนย์กลางอยู่ที่วงกลม 16px พอดี (ครึ่งหนึ่งคือ 8)
+                            iconSize: [100, 20], 
+                            iconAnchor: [8, 8],  
                             popupAnchor: [0, -10]
                         });
 
-                        var marker = L.marker([lat, lng], {icon: customIcon}).addTo(map);
+                        // นำหมุดไปใส่ไว้ใน Layer Group แทนการใส่ลงแผนที่ตรงๆ (เพื่อให้เปิด-ปิดได้)
+                        var marker = L.marker([lat, lng], {icon: customIcon}).addTo(markerLayerGroup);
 
-                        // 4. จัดการลิงก์วิดีโอ (เล่นอัตโนมัติ)
+                        // จัดการลิงก์วิดีโอ 
                         var embedUrl = "";
                         if (videoUrl) {
                             if (videoUrl.includes("youtu.be/")) {
@@ -124,7 +156,6 @@
                             } else {
                                 embedUrl = videoUrl; 
                             }
-                            
                             if (embedUrl.includes("youtube.com")) {
                                 var separator = embedUrl.includes("?") ? "&" : "?";
                                 embedUrl += separator + "autoplay=1&mute=1&controls=0&modestbranding=1&loop=1";
@@ -146,11 +177,11 @@
                     }
                 });
 
-                // 5. ปรับ Heatmap ให้กว้างขึ้นและฟุ้งขึ้น (ซ้อนกันคล้ายเส้นถนน)
+                // สร้าง Heatmap แล้วนำไปใส่ใน Layer Group
                 if (heatPoints.length > 0) {
                     var heat = L.heatLayer(heatPoints, {
-                        radius: 80,    // ปรับให้กว้างขึ้น (เดิม 50)
-                        blur: 50,      // ปรับให้ฟุ้งกลืนกันมากขึ้น (เดิม 30)
+                        radius: 80,    
+                        blur: 50,      
                         maxZoom: 14,   
                         max: 3000,     
                         gradient: {    
@@ -160,7 +191,8 @@
                             0.83: '#FFA500',  
                             1.0: '#FF0000'    
                         }
-                    }).addTo(map);
+                    });
+                    heatLayerGroup.addLayer(heat);
                 }
             },
             error: function(err) {
