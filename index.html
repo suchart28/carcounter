@@ -165,20 +165,35 @@
                         // นำ Custom Icon ไปใส่เป็นหมุดบนแผนที่ ภายใน markerLayerGroup
                         var marker = L.marker([lat, lng], {icon: customIcon}).addTo(markerLayerGroup);
 
-                        // จัดการลิงก์วิดีโอ (เล่นอัตโนมัติ ซ่อนเมนู)
+                        // จัดการลิงก์วิดีโอ (เล่นอัตโนมัติ ซ่อนเมนู และวนลูป)
+                        var videoId = "";
                         var embedUrl = "";
                         if (videoUrl) {
+                            // ดึง Video ID เพื่อใช้สำหรับ playlist param (จำเป็นสำหรับการวนลูปบน YouTube)
                             if (videoUrl.includes("youtu.be/")) {
-                                embedUrl = videoUrl.replace("youtu.be/", "www.youtube.com/embed/");
+                                videoId = videoUrl.split("youtu.be/")[1].split("?")[0];
+                                embedUrl = "https://www.youtube.com/embed/" + videoId;
                             } else if (videoUrl.includes("watch?v=")) {
-                                embedUrl = videoUrl.replace("watch?v=", "embed/");
+                                videoId = videoUrl.split("watch?v=")[1].split("&")[0];
+                                embedUrl = "https://www.youtube.com/embed/" + videoId;
+                            } else if (videoUrl.includes("youtube.com/embed/")) {
+                                // กรณีเป็นลิงก์ embed มาอยู่แล้ว ลองดึง ID ออกมา
+                                videoId = videoUrl.split("youtube.com/embed/")[1].split("?")[0];
+                                embedUrl = videoUrl;
                             } else {
-                                embedUrl = videoUrl; 
+                                embedUrl = videoUrl; // Fallback สำหรับลิงก์วิดีโอทั่วไป
                             }
                             
                             if (embedUrl.includes("youtube.com")) {
                                 var separator = embedUrl.includes("?") ? "&" : "?";
-                                embedUrl += separator + "autoplay=1&mute=1&controls=0&modestbranding=1&loop=1";
+                                // เพิ่ม autoplay=1 (เล่นอัตโนมัติ), mute=1 (ต้องปิดเสียงเบราว์เซอร์ถึงจะยอมให้เล่นอัตโนมัติ)
+                                // controls=0 (ซ่อนแถบควบคุม), modestbranding=1 (ซ่อนโลโก้)
+                                // loop=1 และ playlist=videoId (ทำให้วนลูปสำเร็จ)
+                                var params = "autoplay=1&mute=1&controls=0&modestbranding=1&loop=1";
+                                if(videoId) {
+                                    params += "&playlist=" + videoId;
+                                }
+                                embedUrl += separator + params;
                             }
                         }
 
