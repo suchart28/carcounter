@@ -7,14 +7,37 @@
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@500&display=swap" rel="stylesheet">
+    
     <style>
         body { margin: 0; padding: 0; font-family: sans-serif; }
         #map { width: 100%; height: 100vh; }
+        
+        /* สไตล์สำหรับหัวเรื่องด้านบนตรงกลาง */
+        #map-title {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000; /* ให้อยู่เหนือแผนที่ */
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px 30px;
+            border-radius: 30px; /* ขอบมน */
+            font-family: 'Prompt', sans-serif; /* ใช้ฟอนต์ Google Thai */
+            font-size: 22px;
+            color: #333333;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            pointer-events: none; /* ปล่อยให้คลิกทะลุลงไปที่แผนที่ได้ */
+            white-space: nowrap;
+        }
         
         /* ตกแต่งกล่องข้อความ Pop-up */
         .leaflet-popup-content-wrapper {
             border-radius: 12px;
             overflow: hidden;
+            font-family: 'Prompt', sans-serif; /* ให้ Pop-up ใช้ฟอนต์เดียวกันด้วย */
         }
 
         /* ลบพื้นหลังสีขาวเริ่มต้นของ divIcon ออก */
@@ -22,11 +45,25 @@
             background: none;
             border: none;
         }
+        
+        /* สไตล์สำหรับโลโก้ที่มุมล่างซ้าย */
+        #logo {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+            max-width: 100px;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
 
+    <div id="map-title">แผนที่แสดงความหนาแน่นการจราจร จ.ขอนแก่น</div>
+
     <div id="map"></div>
+    
+    <img src="bussing.png" id="logo" alt="Logo">
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -45,11 +82,11 @@
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
 
-        // ใส่ API Key ของ TomTom (อัปเดตใหม่ล่าสุด)
+        // ใส่ API Key ของ TomTom จากผู้ใช้
         var tomtomApiKey = '8oHwI99AzpDA013yabYCuqOfZ4ffAW6t'; 
         
-        // แผนที่จราจร (TomTom Traffic Flow) - ตั้งค่า absolute และบังคับเปิดแสดงอัตโนมัติ
-        var trafficLayer = L.tileLayer(`https://api.tomtom.com/traffic/map/4/tile/flow/absolute/{z}/{x}/{y}.png?key=${tomtomApiKey}`, {
+        // แผนที่จราจร (TomTom Traffic Flow) - ตั้งค่า relative และบังคับเปิดแสดงอัตโนมัติ
+        var trafficLayer = L.tileLayer(`https://api.tomtom.com/traffic/map/4/tile/flow/relative/{z}/{x}/{y}.png?key=${tomtomApiKey}`, {
             attribution: '&copy; TomTom Traffic',
             opacity: 0.8 
         }).addTo(map);
@@ -58,7 +95,7 @@
         var markerLayerGroup = L.layerGroup().addTo(map); // ให้แสดงหมุดตั้งแต่เริ่ม
         var heatLayerGroup = L.layerGroup().addTo(map);   // ให้แสดง Heatmap ตั้งแต่เริ่ม
 
-        // สร้างกล่องเมนูควบคุม Layer มุมขวาบน
+        // สร้างกล่องเมนูควบคุม Layer มุมขวาบน (เปลี่ยนชื่อตามที่กำหนด)
         var baseMaps = {
             "แผนที่ปกติ (OSM)": osmLayer
         };
@@ -111,9 +148,9 @@
                         var fillColor = getColor(carsPerHour);
                         heatPoints.push([lat, lng, carsPerHour]);
 
-                        // ป้ายตัวเลข (ป้ายขาว ตัวเลขดำ)
+                        // สังเคราะห์ HTML สำหรับหมุด (เพิ่มฟอนต์ Prompt เข้าไปที่ตัวเลข)
                         var iconHtml = `
-                            <div style="position: relative; display: flex; align-items: center;">
+                            <div style="position: relative; display: flex; align-items: center; font-family: 'Prompt', sans-serif;">
                                 <div style="
                                     background-color: ${fillColor};
                                     width: 16px;
@@ -125,11 +162,11 @@
                                 <div style="
                                     margin-left: 6px;
                                     background: #ffffff;
-                                    padding: 2px 6px;
+                                    padding: 2px 8px;
                                     border-radius: 4px;
                                     font-size: 13px;
-                                    font-weight: bold;
-                                    color: #000000; 
+                                    font-weight: 500;
+                                    color: #000000;
                                     border: 1px solid #cccccc;
                                     box-shadow: 0 1px 3px rgba(0,0,0,0.3);
                                     white-space: nowrap;
@@ -145,10 +182,10 @@
                             popupAnchor: [0, -10]
                         });
 
-                        // นำหมุดไปใส่ไว้ใน Layer Group
+                        // นำ Custom Icon ไปใส่เป็นหมุดบนแผนที่ ภายใน markerLayerGroup
                         var marker = L.marker([lat, lng], {icon: customIcon}).addTo(markerLayerGroup);
 
-                        // จัดการลิงก์วิดีโอ 
+                        // จัดการลิงก์วิดีโอ (เล่นอัตโนมัติ ซ่อนเมนู)
                         var embedUrl = "";
                         if (videoUrl) {
                             if (videoUrl.includes("youtu.be/")) {
@@ -158,16 +195,18 @@
                             } else {
                                 embedUrl = videoUrl; 
                             }
+                            
                             if (embedUrl.includes("youtube.com")) {
                                 var separator = embedUrl.includes("?") ? "&" : "?";
                                 embedUrl += separator + "autoplay=1&mute=1&controls=0&modestbranding=1&loop=1";
                             }
                         }
 
+                        // สร้างหน้าต่าง Pop-up
                         var popupContent = `
                             <div style="text-align: center;">
                                 <div style="font-size: 16px; margin-bottom: 8px; color: #333;">
-                                    <b>ปริมาณรถ: <span style="color: ${fillColor}; font-size: 18px;">${carsPerHour.toLocaleString()}</span> คัน/ชม.</b>
+                                    <b>ปริมาณรถ: <span style="font-size: 18px; color: ${fillColor};">${carsPerHour.toLocaleString()}</span> คัน/ชม.</b>
                                 </div>
                                 <iframe width="240" height="150" src="${embedUrl}" 
                                 style="border-radius: 8px; pointer-events: none;" 
@@ -179,7 +218,7 @@
                     }
                 });
 
-                // สร้าง Heatmap แล้วนำไปใส่ใน Layer Group
+                // สร้างชั้น Heatmap ภายใน heatLayerGroup
                 if (heatPoints.length > 0) {
                     var heat = L.heatLayer(heatPoints, {
                         radius: 80,    
