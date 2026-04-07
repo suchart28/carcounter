@@ -12,7 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;700&display=swap" rel="stylesheet">
     
     <style>
-        body { margin: 0; padding: 0; font-family: sans-serif; }
+        body { margin: 0; padding: 0; font-family: sans-serif; background-color: #1a1a1a; }
         #map { width: 100%; height: 100vh; }
         
         /* ตกแต่งกล่องข้อความ Pop-up เป็นสีดำ */
@@ -30,9 +30,12 @@
             background-color: #222222;
         }
 
-        /* ลบปุ่มกากบาทปิด (ถ้าอยากให้เป็นสีขาว ต้องตั้งค่าเพิ่ม หรือปล่อยไว้ปกติได้) */
+        /* เปลี่ยนปุ่มกากบาทปิดให้เป็นสีขาวเพื่อให้มองเห็นบนพื้นดำ */
         .leaflet-container a.leaflet-popup-close-button {
             color: #ffffff;
+        }
+        .leaflet-container a.leaflet-popup-close-button:hover {
+            color: #cccccc;
         }
 
         /* ลบพื้นหลังสีขาวเริ่มต้นของ divIcon ออก */
@@ -70,9 +73,11 @@
         // ส่วนจัดการ Layer (ชั้นข้อมูลแผนที่)
         // ==========================================
         
-        // แผนที่พื้นฐาน (OpenStreetMap)
-        var osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
+        // แผนที่พื้นฐานโทนเทาเข้ม (CartoDB Dark Matter)
+        var darkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
         }).addTo(map);
 
         // ใส่ API Key ของ TomTom
@@ -90,7 +95,7 @@
 
         // สร้างกล่องเมนูควบคุม Layer มุมขวาบน
         var baseMaps = {
-            "ความหนาแน่นการจราจรขอนแก่น": osmLayer
+            "ความหนาแน่นการจราจรขอนแก่น": darkLayer
         };
         var overlayMaps = {
             "จุดปริมาณรถ (คัน/ชั่วโมง)": markerLayerGroup,
@@ -141,7 +146,7 @@
                         var fillColor = getColor(carsPerHour);
                         heatPoints.push([lat, lng, carsPerHour]);
 
-                        // สังเคราะห์ HTML สำหรับหมุด (พื้นขาว ตัวเลขดำ เหมือนเดิม)
+                        // สังเคราะห์ HTML สำหรับหมุด
                         var iconHtml = `
                             <div style="position: relative; display: flex; align-items: center; font-family: 'Prompt', sans-serif;">
                                 <div style="
