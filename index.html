@@ -45,20 +45,20 @@
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
 
-     // *** ใส่ API Key ของ TomTom ที่นี่ ***
+        // ใส่ API Key ของ TomTom 
         var tomtomApiKey = '18qdMExwD6avJjZWkAR9BWkFTrtzfXNw'; 
         
-        // แผนที่จราจร (TomTom Traffic Flow) - เปลี่ยนเป็น absolute และบังคับแสดงทันที
+        // แผนที่จราจร (TomTom Traffic Flow) - ตั้งค่า absolute และบังคับเปิดแสดงอัตโนมัติ
         var trafficLayer = L.tileLayer(`https://api.tomtom.com/traffic/map/4/tile/flow/absolute/{z}/{x}/{y}.png?key=${tomtomApiKey}`, {
             attribution: '&copy; TomTom Traffic',
             opacity: 0.8 
-        }).addTo(map); // <-- การเติม .addTo(map) ตรงนี้คือการสั่งให้โชว์ตั้งแต่เริ่มครับ
+        }).addTo(map);
 
         // กลุ่ม Layer สำหรับ หมุด และ Heatmap
         var markerLayerGroup = L.layerGroup().addTo(map); // ให้แสดงหมุดตั้งแต่เริ่ม
         var heatLayerGroup = L.layerGroup().addTo(map);   // ให้แสดง Heatmap ตั้งแต่เริ่ม
 
-        // สร้างกล่องเมนูควบคุม Layer มุมขวาบน
+        // สร้างกล่องเมนูควบคุม Layer มุมขวาบน (เปลี่ยนชื่อตามที่กำหนด)
         var baseMaps = {
             "แผนที่ปกติ (OSM)": osmLayer
         };
@@ -102,14 +102,16 @@
                     
                     var rawCars = row['cars'] ? String(row['cars']).replace(/,/g, '') : "0";
                     var carsPerHour = parseFloat(rawCars);
-                    var videoUrl = row['link'] || row['url'] || ""; 
+                    
+                    // ดึงวิดีโอจากคอลัมน์ชื่อ video
+                    var videoUrl = row['video'] || ""; 
 
                     if (!isNaN(lat) && !isNaN(lng)) {
                         
                         var fillColor = getColor(carsPerHour);
                         heatPoints.push([lat, lng, carsPerHour]);
 
-                        // 2. ปรับป้ายตัวเลขเป็น ป้ายขาว ตัวเลขดำ
+                        // ป้ายตัวเลข (ป้ายขาว ตัวเลขดำ)
                         var iconHtml = `
                             <div style="position: relative; display: flex; align-items: center;">
                                 <div style="
@@ -143,7 +145,7 @@
                             popupAnchor: [0, -10]
                         });
 
-                        // นำหมุดไปใส่ไว้ใน Layer Group แทนการใส่ลงแผนที่ตรงๆ (เพื่อให้เปิด-ปิดได้)
+                        // นำหมุดไปใส่ไว้ใน Layer Group
                         var marker = L.marker([lat, lng], {icon: customIcon}).addTo(markerLayerGroup);
 
                         // จัดการลิงก์วิดีโอ 
