@@ -10,6 +10,12 @@
     <style>
         body { margin: 0; padding: 0; font-family: sans-serif; }
         #map { width: 100%; height: 100vh; }
+        
+        /* ตกแต่งกล่องข้อความ Pop-up */
+        .leaflet-popup-content-wrapper {
+            border-radius: 12px;
+            overflow: hidden;
+        }
     </style>
 </head>
 <body>
@@ -29,11 +35,21 @@
 
         var csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTBl_7t5r5vFUW_QbxVF4h2FxfAaPP7vdGvXEsJ8kMxAZ0wZHlM42KPCCnjq0yTlXSyaPs1-kpyy8GP/pub?gid=2023562744&single=true&output=csv';
 
+        // 2. ฟังก์ชันกำหนดสีแบบไล่ระดับ (Gradient)
+        function getColor(cars) {
+            if (cars >= 3000) return '#FF0000'; // แดง (3000 ขึ้นไป)
+            if (cars >= 2500) return '#FF4500'; // แดงอมส้ม
+            if (cars >= 2000) return '#FFA500'; // ส้ม (ใกล้ 2000)
+            if (cars >= 1500) return '#FFD700'; // เหลือง
+            if (cars >= 1000) return '#32CD32'; // เขียวอ่อน (ใกล้ 1000)
+            return '#008000';                   // เขียวเข้ม (น้อยกว่า 1000)
+        }
+
         Papa.parse(csvUrl, {
             download: true,
             header: true, 
             skipEmptyLines: true,
-            // เพิ่มฟังก์ชันนี้เพื่อจัดการหัวตาราง: ลบช่องว่างส่วนเกินและแปลงเป็นตัวพิมพ์เล็กทั้งหมด
+            // จัดการหัวตาราง: ลบช่องว่างส่วนเกินและแปลงเป็นตัวพิมพ์เล็กทั้งหมด
             transformHeader: function(header) {
                 return header.trim().toLowerCase();
             },
@@ -41,36 +57,36 @@
                 var data = results.data;
                 
                 data.forEach(function(row) {
-                    // 2. ดึงข้อมูลพิกัด (อ้างอิงเป็นตัวพิมพ์เล็กทั้งหมดตามที่เรา transform ไว้)
-                    // รองรับทั้งชื่อ lat, lag, long เผื่อไว้ให้เลยครับ
+                    // ดึงข้อมูลพิกัด
                     var lat = parseFloat(row['lat']); 
                     var lng = parseFloat(row['lag'] || row['long']); 
                     
-                    // 3. ดึงค่าจากคอลัมน์ 'cars' ลบลูกน้ำออก แล้วแปลงเป็นตัวเลข
+                    // ดึงค่าจำนวนรถ ลบลูกน้ำออก แล้วแปลงเป็นตัวเลข
                     var rawCars = row['cars'] ? String(row['cars']).replace(/,/g, '') : "0";
                     var carsPerHour = parseFloat(rawCars);
 
-                    // 4. ดึงลิงก์วิดีโอ
+                    // ดึงลิงก์วิดีโอ
                     var videoUrl = row['link'] || row['url'] || ""; 
 
                     // ถ้ามีพิกัดครบ ค่อยปักหมุด
                     if (!isNaN(lat) && !isNaN(lng)) {
                         
-                        // เกณฑ์สี: มากกว่า 100 สีแดง, น้อยกว่าหรือเท่ากับสีเขียว
-                        var fillColor = (carsPerHour > 100) ? '#dc3545' : '#28a745'; 
+                        // เรียกใช้ฟังก์ชันแปลงสีตามจำนวนรถที่เขียนไว้ด้านบน
+                        var fillColor = getColor(carsPerHour);
 
                         var marker = L.circleMarker([lat, lng], {
                             radius: 12,
                             fillColor: fillColor,
-                            color: "#fff", 
+                            color: "#ffffff", 
                             weight: 2,
                             opacity: 1,
-                            fillOpacity: 0.8
+                            fillOpacity: 0.85
                         }).addTo(map);
 
-                        // แปลงลิงก์ YouTube เป็น Embed
+                        // 3. จัดการลิงก์วิดีโอให้เล่นอัตโนมัติและซ่อนเมนูควบคุม
                         var embedUrl = "";
                         if (videoUrl) {
+                            // ทำลิงก์ YouTube ให้อยู่ในรูปแบบ Embed
                             if (videoUrl.includes("youtu.be/")) {
                                 embedUrl = videoUrl.replace("youtu.be/", "www.youtube.com/embed/");
                             } else if (videoUrl.includes("watch?v=")) {
@@ -78,16 +94,23 @@
                             } else {
                                 embedUrl = videoUrl; 
                             }
+                            
+                            // เติมคำสั่ง Autoplay (เล่นอัตโนมัติ), Mute (ปิดเสียง), Controls=0 (ซ่อนแถบเมนู)
+                            if (embedUrl.includes("youtube.com")) {
+                                var separator = embedUrl.includes("?") ? "&" : "?";
+                                embedUrl += separator + "autoplay=1&mute=1&controls=0&modestbranding=1&loop=1";
+                            }
                         }
 
                         // สร้างหน้าต่าง Pop-up
                         var popupContent = `
                             <div style="text-align: center;">
-                                <div style="font-size: 16px; margin-bottom: 8px;">
-                                    <b>ปริมาณจราจร: ${carsPerHour.toLocaleString()} คัน/ชั่วโมง</b>
+                                <div style="font-size: 16px; margin-bottom: 8px; color: #333;">
+                                    <b>ปริมาณรถ: <span style="color: ${fillColor}; font-size: 18px;">${carsPerHour.toLocaleString()}</span> คัน/ชม.</b>
                                 </div>
                                 <iframe width="240" height="150" src="${embedUrl}" 
-                                frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen>
+                                style="border-radius: 8px; pointer-events: none;" 
+                                frameborder="0" allow="autoplay; encrypted-media" allowfullscreen>
                                 </iframe>
                             </div>
                         `;
