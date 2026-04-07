@@ -23,76 +23,71 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
-    <script>
-        // 1. ตั้งค่าเริ่มต้นของแผนที่ (กำหนดพิกัดศูนย์กลาง และระดับการซูม)
-        // พิกัด 13.7563, 100.5018 คือกรุงเทพฯ (เปลี่ยนได้ตามพื้นที่เป้าหมาย)
+ <script>
         var map = L.map('map').setView([13.7563, 100.5018], 10);
 
-        // 2. เรียกใช้แผนที่จาก OpenStreetMap
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
-        // 3. Link CSV จาก Google Sheets
         var csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTBl_7t5r5vFUW_QbxVF4h2FxfAaPP7vdGvXEsJ8kMxAZ0wZHlM42KPCCnjq0yTlXSyaPs1-kpyy8GP/pub?gid=2023562744&single=true&output=csv';
 
-        // 4. ดึงข้อมูลและสร้างหมุด
         Papa.parse(csvUrl, {
             download: true,
-            header: true, // บอกว่าแถวแรกคือชื่อคอลัมน์
-            dynamicTyping: true, // แปลงตัวเลขให้เป็น Number อัตโนมัติ
+            header: true, 
+            dynamicTyping: true, 
             complete: function(results) {
                 var data = results.data;
+                
+                // ให้แสดงข้อมูลที่ดึงมาได้ในหน้าต่าง Console (F12)
+                console.log("ดึงข้อมูลสำเร็จ! นี่คือข้อมูลจาก Sheet ของคุณ:", data);
 
-                data.forEach(function(row) {
-                    // *** สำคัญ: เปลี่ยนชื่อคอลัมน์ด้านล่างให้ตรงกับใน Google Sheets ของคุณ ***
-                    var lat = row.lat; // เปลี่ยน 'lat' เป็นชื่อหัวคอลัมน์ละติจูดใน Sheet
-                    var lng = row.lag; // เปลี่ยน 'lag' เป็นชื่อหัวคอลัมน์ลองจิจูดใน Sheet
-                    var carsPerHour = row.cars; // เปลี่ยน 'cars' เป็นชื่อหัวคอลัมน์จำนวนรถ
-                    var videoUrl = row.video; // เปลี่ยน 'video' เป็นชื่อหัวคอลัมน์ลิงก์วิดีโอ
+                data.forEach(function(row, index) {
+                    // *** สำคัญที่สุด: เปลี่ยนคำในวงเล็บเหลี่ยมให้ตรงกับหัวตารางใน Sheet ***
+                    var lat = parseFloat(row['lat']); 
+                    var lng = parseFloat(row['lag']); 
+                    var carsPerHour = parseFloat(row['cars']); 
+                    var videoUrl = row['video']; 
 
-                    // ตรวจสอบว่ามีพิกัดถูกต้องหรือไม่ก่อนปักหมุด
-                    if (lat && lng) {
+                    // เช็คว่าพิกัดเป็นตัวเลขที่ถูกต้องหรือไม่ก่อนปักหมุด
+                    if (!isNaN(lat) && !isNaN(lng)) {
                         
-                        // 5. กำหนดสีหมุดตามจำนวนรถ (ตัวอย่าง: มากกว่า 100 สีแดง, น้อยกว่าหรือเท่ากับ 100 สีเขียว)
                         var markerColor = 'green';
-                        var fillColor = '#28a745'; // สีเขียว
+                        var fillColor = '#28a745'; 
 
                         if (carsPerHour > 100) {
                             markerColor = 'red';
-                            fillColor = '#dc3545'; // สีแดง
+                            fillColor = '#dc3545'; 
                         }
 
-                        // สร้างหมุดแบบวงกลม (CircleMarker) เพราะสามารถเปลี่ยนสีได้อิสระง่ายกว่าไฟล์รูปภาพ
                         var marker = L.circleMarker([lat, lng], {
                             radius: 12,
                             fillColor: fillColor,
-                            color: "#fff", // สีขอบ
+                            color: "#fff", 
                             weight: 2,
                             opacity: 1,
                             fillOpacity: 0.8
                         }).addTo(map);
 
-                        // 6. สร้าง Popup พร้อมวิดีโอ
                         var popupContent = `
                             <div style="text-align: center;">
                                 <b>จำนวนรถ: ${carsPerHour} คัน/ชั่วโมง</b><br><br>
                                 <video class="popup-video" controls autoplay muted loop>
                                     <source src="${videoUrl}" type="video/mp4">
-                                    เบราว์เซอร์ของคุณไม่รองรับการแสดงวิดีโอ
+                                    เบราว์เซอร์ของคุณไม่รองรับ
                                 </video>
                             </div>
                         `;
-                        
                         marker.bindPopup(popupContent, { minWidth: 260 });
+                        
+                        console.log(`ปักหมุดสำเร็จที่แถว ${index + 2}: พิกัด [${lat}, ${lng}]`);
+                    } else {
+                        console.warn(`ข้ามแถวที่ ${index + 2} ไป เนื่องจากพิกัด (lat/lag) ไม่ถูกต้องหรือไม่ใช่ตัวเลข`);
                     }
                 });
-                
-                // หากต้องการให้แผนที่ซูมให้ครอบคลุมหมุดทั้งหมดอัตโนมัติ ให้เปิดคอมเมนต์โค้ดด้านล่าง
-                /*
-                var group = new L.featureGroup(map._layers);
-                map.fitBounds(group.getBounds());
-                */
+            },
+            error: function(err) {
+                console.error("เกิดข้อผิดพลาดในการดึงไฟล์ CSV:", err);
             }
         });
     </script>
