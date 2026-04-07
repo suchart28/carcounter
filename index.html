@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>แผนที่แสดงความหนาแน่นการจราจร</title>
+    <title>แผนที่แสดงความหนาแน่นการจราจร จ.ขอนแก่น</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
     <style>
         body { margin: 0; padding: 0; font-family: sans-serif; }
-        /* กำหนดขนาดแผนที่ให้เต็มหน้าจอ */
         #map { width: 100%; height: 100vh; }
     </style>
 </head>
@@ -21,41 +20,43 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
     <script>
-        // 1. ตั้งค่าเริ่มต้นของแผนที่ (กำหนดพิกัดศูนย์กลางไปที่ จ.ขอนแก่น และระดับการซูม)
+        // 1. ศูนย์กลาง จ.ขอนแก่น
         var map = L.map('map').setView([16.4322, 102.8236], 12);
 
-        // 2. เรียกใช้แผนที่จาก OpenStreetMap
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
-        // 3. Link CSV จาก Google Sheets
         var csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTBl_7t5r5vFUW_QbxVF4h2FxfAaPP7vdGvXEsJ8kMxAZ0wZHlM42KPCCnjq0yTlXSyaPs1-kpyy8GP/pub?gid=2023562744&single=true&output=csv';
 
-        // 4. ดึงข้อมูลและสร้างหมุด
         Papa.parse(csvUrl, {
             download: true,
-            header: true, // เปิดใช้อ่านหัวตาราง
+            header: true, 
             skipEmptyLines: true,
+            // เพิ่มฟังก์ชันนี้เพื่อจัดการหัวตาราง: ลบช่องว่างส่วนเกินและแปลงเป็นตัวพิมพ์เล็กทั้งหมด
+            transformHeader: function(header) {
+                return header.trim().toLowerCase();
+            },
             complete: function(results) {
                 var data = results.data;
                 
                 data.forEach(function(row) {
-                    // ดึงข้อมูลพิกัด (เช็คชื่อคอลัมน์ให้ตรงเป๊ะ: lat, Lag)
+                    // 2. ดึงข้อมูลพิกัด (อ้างอิงเป็นตัวพิมพ์เล็กทั้งหมดตามที่เรา transform ไว้)
+                    // รองรับทั้งชื่อ lat, lag, long เผื่อไว้ให้เลยครับ
                     var lat = parseFloat(row['lat']); 
-                    var lng = parseFloat(row['Lag']); 
+                    var lng = parseFloat(row['lag'] || row['long']); 
                     
-                    // ดึงค่าจากคอลัมน์ 'cars' ลบลูกน้ำออก แล้วแปลงเป็นตัวเลข
+                    // 3. ดึงค่าจากคอลัมน์ 'cars' ลบลูกน้ำออก แล้วแปลงเป็นตัวเลข
                     var rawCars = row['cars'] ? String(row['cars']).replace(/,/g, '') : "0";
                     var carsPerHour = parseFloat(rawCars);
 
-                    // ดึงลิงก์จากคอลัมน์ 'Link'
-                    var videoUrl = row['Link']; 
+                    // 4. ดึงลิงก์วิดีโอ
+                    var videoUrl = row['link'] || row['url'] || ""; 
 
-                    // ตรวจสอบว่าพิกัดถูกต้องถึงจะปักหมุด
+                    // ถ้ามีพิกัดครบ ค่อยปักหมุด
                     if (!isNaN(lat) && !isNaN(lng)) {
                         
-                        // 5. กำหนดสีตามจำนวนรถ (มากกว่า 100 สีแดง, น้อยกว่าหรือเท่ากับสีเขียว)
+                        // เกณฑ์สี: มากกว่า 100 สีแดง, น้อยกว่าหรือเท่ากับสีเขียว
                         var fillColor = (carsPerHour > 100) ? '#dc3545' : '#28a745'; 
 
                         var marker = L.circleMarker([lat, lng], {
@@ -67,7 +68,7 @@
                             fillOpacity: 0.8
                         }).addTo(map);
 
-                        // 6. แปลงลิงก์ YouTube ให้เป็นแบบ Embed เพื่อให้เล่นใน Pop-up ได้
+                        // แปลงลิงก์ YouTube เป็น Embed
                         var embedUrl = "";
                         if (videoUrl) {
                             if (videoUrl.includes("youtu.be/")) {
@@ -79,7 +80,7 @@
                             }
                         }
 
-                        // 7. สร้างเนื้อหาใน Pop-up
+                        // สร้างหน้าต่าง Pop-up
                         var popupContent = `
                             <div style="text-align: center;">
                                 <div style="font-size: 16px; margin-bottom: 8px;">
