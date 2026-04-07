@@ -8,12 +8,9 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
     <style>
-        body { margin: 0; padding: 0; }
+        body { margin: 0; padding: 0; font-family: sans-serif; }
         /* กำหนดขนาดแผนที่ให้เต็มหน้าจอ */
         #map { width: 100%; height: 100vh; }
-        
-        /* ตกแต่ง Popup */
-        .popup-video { width: 100%; max-width: 250px; border-radius: 8px; }
     </style>
 </head>
 <body>
@@ -23,42 +20,43 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
- <script>
-        var map = L.map('map').setView([13.7563, 100.5018], 10);
+    <script>
+        // 1. ตั้งค่าเริ่มต้นของแผนที่ (กำหนดพิกัดศูนย์กลางไปที่ จ.ขอนแก่น และระดับการซูม)
+        var map = L.map('map').setView([16.4322, 102.8236], 12);
 
+        // 2. เรียกใช้แผนที่จาก OpenStreetMap
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
+        // 3. Link CSV จาก Google Sheets
         var csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTBl_7t5r5vFUW_QbxVF4h2FxfAaPP7vdGvXEsJ8kMxAZ0wZHlM42KPCCnjq0yTlXSyaPs1-kpyy8GP/pub?gid=2023562744&single=true&output=csv';
 
+        // 4. ดึงข้อมูลและสร้างหมุด
         Papa.parse(csvUrl, {
             download: true,
-            header: true, 
-            dynamicTyping: true, 
+            header: true, // เปิดใช้อ่านหัวตาราง
+            skipEmptyLines: true,
             complete: function(results) {
                 var data = results.data;
                 
-                // ให้แสดงข้อมูลที่ดึงมาได้ในหน้าต่าง Console (F12)
-                console.log("ดึงข้อมูลสำเร็จ! นี่คือข้อมูลจาก Sheet ของคุณ:", data);
-
-                data.forEach(function(row, index) {
-                    // *** สำคัญที่สุด: เปลี่ยนคำในวงเล็บเหลี่ยมให้ตรงกับหัวตารางใน Sheet ***
+                data.forEach(function(row) {
+                    // ดึงข้อมูลพิกัด (เช็คชื่อคอลัมน์ให้ตรงเป๊ะ: lat, Lag)
                     var lat = parseFloat(row['lat']); 
-                    var lng = parseFloat(row['lag']); 
-                    var carsPerHour = parseFloat(row['cars']); 
-                    var videoUrl = row['video']; 
+                    var lng = parseFloat(row['Lag']); 
+                    
+                    // ดึงค่าจากคอลัมน์ 'cars' ลบลูกน้ำออก แล้วแปลงเป็นตัวเลข
+                    var rawCars = row['cars'] ? String(row['cars']).replace(/,/g, '') : "0";
+                    var carsPerHour = parseFloat(rawCars);
 
-                    // เช็คว่าพิกัดเป็นตัวเลขที่ถูกต้องหรือไม่ก่อนปักหมุด
+                    // ดึงลิงก์จากคอลัมน์ 'Link'
+                    var videoUrl = row['Link']; 
+
+                    // ตรวจสอบว่าพิกัดถูกต้องถึงจะปักหมุด
                     if (!isNaN(lat) && !isNaN(lng)) {
                         
-                        var markerColor = 'green';
-                        var fillColor = '#28a745'; 
-
-                        if (carsPerHour > 100) {
-                            markerColor = 'red';
-                            fillColor = '#dc3545'; 
-                        }
+                        // 5. กำหนดสีตามจำนวนรถ (มากกว่า 100 สีแดง, น้อยกว่าหรือเท่ากับสีเขียว)
+                        var fillColor = (carsPerHour > 100) ? '#dc3545' : '#28a745'; 
 
                         var marker = L.circleMarker([lat, lng], {
                             radius: 12,
@@ -69,25 +67,35 @@
                             fillOpacity: 0.8
                         }).addTo(map);
 
+                        // 6. แปลงลิงก์ YouTube ให้เป็นแบบ Embed เพื่อให้เล่นใน Pop-up ได้
+                        var embedUrl = "";
+                        if (videoUrl) {
+                            if (videoUrl.includes("youtu.be/")) {
+                                embedUrl = videoUrl.replace("youtu.be/", "www.youtube.com/embed/");
+                            } else if (videoUrl.includes("watch?v=")) {
+                                embedUrl = videoUrl.replace("watch?v=", "embed/");
+                            } else {
+                                embedUrl = videoUrl; 
+                            }
+                        }
+
+                        // 7. สร้างเนื้อหาใน Pop-up
                         var popupContent = `
                             <div style="text-align: center;">
-                                <b>จำนวนรถ: ${carsPerHour} คัน/ชั่วโมง</b><br><br>
-                                <video class="popup-video" controls autoplay muted loop>
-                                    <source src="${videoUrl}" type="video/mp4">
-                                    เบราว์เซอร์ของคุณไม่รองรับ
-                                </video>
+                                <div style="font-size: 16px; margin-bottom: 8px;">
+                                    <b>ปริมาณจราจร: ${carsPerHour.toLocaleString()} คัน/ชั่วโมง</b>
+                                </div>
+                                <iframe width="240" height="150" src="${embedUrl}" 
+                                frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen>
+                                </iframe>
                             </div>
                         `;
                         marker.bindPopup(popupContent, { minWidth: 260 });
-                        
-                        console.log(`ปักหมุดสำเร็จที่แถว ${index + 2}: พิกัด [${lat}, ${lng}]`);
-                    } else {
-                        console.warn(`ข้ามแถวที่ ${index + 2} ไป เนื่องจากพิกัด (lat/lag) ไม่ถูกต้องหรือไม่ใช่ตัวเลข`);
                     }
                 });
             },
             error: function(err) {
-                console.error("เกิดข้อผิดพลาดในการดึงไฟล์ CSV:", err);
+                console.error("เกิดข้อผิดพลาดในการโหลดไฟล์ CSV:", err);
             }
         });
     </script>
