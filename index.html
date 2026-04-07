@@ -16,6 +16,12 @@
             border-radius: 12px;
             overflow: hidden;
         }
+
+        /* ลบพื้นหลังสีขาวเริ่มต้นของ divIcon ออก */
+        .custom-pin-container {
+            background: none;
+            border: none;
+        }
     </style>
 </head>
 <body>
@@ -24,6 +30,7 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
 
     <script>
         // 1. ศูนย์กลาง จ.ขอนแก่น
@@ -49,44 +56,62 @@
             download: true,
             header: true, 
             skipEmptyLines: true,
-            // จัดการหัวตาราง: ลบช่องว่างส่วนเกินและแปลงเป็นตัวพิมพ์เล็กทั้งหมด
             transformHeader: function(header) {
                 return header.trim().toLowerCase();
             },
             complete: function(results) {
                 var data = results.data;
+                var heatPoints = []; // ตัวแปรสำหรับเก็บข้อมูลพิกัดและความเข้มของ Heatmap
                 
                 data.forEach(function(row) {
-                    // ดึงข้อมูลพิกัด
                     var lat = parseFloat(row['lat']); 
                     var lng = parseFloat(row['lag'] || row['long']); 
                     
-                    // ดึงค่าจำนวนรถ ลบลูกน้ำออก แล้วแปลงเป็นตัวเลข
                     var rawCars = row['cars'] ? String(row['cars']).replace(/,/g, '') : "0";
                     var carsPerHour = parseFloat(rawCars);
-
-                    // ดึงลิงก์วิดีโอ
                     var videoUrl = row['link'] || row['url'] || ""; 
 
-                    // ถ้ามีพิกัดครบ ค่อยปักหมุด
                     if (!isNaN(lat) && !isNaN(lng)) {
                         
-                        // เรียกใช้ฟังก์ชันแปลงสีตามจำนวนรถที่เขียนไว้ด้านบน
                         var fillColor = getColor(carsPerHour);
 
-                        var marker = L.circleMarker([lat, lng], {
-                            radius: 12,
-                            fillColor: fillColor,
-                            color: "#ffffff", 
-                            weight: 2,
-                            opacity: 1,
-                            fillOpacity: 0.85
-                        }).addTo(map);
+                        // 3. เก็บข้อมูลใส่ใน Array สำหรับทำ Heatmap
+                        // เก็บแบบ: [ละติจูด, ลองจิจูด, ความเข้ม/จำนวนรถ]
+                        heatPoints.push([lat, lng, carsPerHour]);
 
-                        // 3. จัดการลิงก์วิดีโอให้เล่นอัตโนมัติและซ่อนเมนูควบคุม
+                        // 4. สร้าง HTML สำหรับหมุดที่มีตัวเลขอยู่ตรงกลาง
+                        var iconHtml = `
+                            <div style="
+                                background-color: ${fillColor};
+                                width: 45px;
+                                height: 45px;
+                                border-radius: 50%;
+                                border: 2.5px solid white;
+                                color: white;
+                                font-size: 11px;
+                                font-weight: bold;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                box-shadow: 0 3px 6px rgba(0,0,0,0.5);
+                            ">${carsPerHour.toLocaleString()}</div>
+                        `;
+
+                        // สร้าง Custom Icon 
+                        var customIcon = L.divIcon({
+                            html: iconHtml,
+                            className: 'custom-pin-container', // อ้างอิงจาก CSS ด้านบน
+                            iconSize: [45, 45],
+                            iconAnchor: [22.5, 22.5], // ให้จุดศูนย์กลางอยู่ตรงกลางวงกลม
+                            popupAnchor: [0, -22] // ให้ Pop-up เด้งเหนือวงกลมเล็กน้อย
+                        });
+
+                        // นำ Custom Icon ไปใส่เป็นหมุดบนแผนที่
+                        var marker = L.marker([lat, lng], {icon: customIcon}).addTo(map);
+
+                        // 5. จัดการลิงก์วิดีโอ (เล่นอัตโนมัติ ซ่อนเมนู)
                         var embedUrl = "";
                         if (videoUrl) {
-                            // ทำลิงก์ YouTube ให้อยู่ในรูปแบบ Embed
                             if (videoUrl.includes("youtu.be/")) {
                                 embedUrl = videoUrl.replace("youtu.be/", "www.youtube.com/embed/");
                             } else if (videoUrl.includes("watch?v=")) {
@@ -95,7 +120,6 @@
                                 embedUrl = videoUrl; 
                             }
                             
-                            // เติมคำสั่ง Autoplay (เล่นอัตโนมัติ), Mute (ปิดเสียง), Controls=0 (ซ่อนแถบเมนู)
                             if (embedUrl.includes("youtube.com")) {
                                 var separator = embedUrl.includes("?") ? "&" : "?";
                                 embedUrl += separator + "autoplay=1&mute=1&controls=0&modestbranding=1&loop=1";
@@ -117,6 +141,23 @@
                         marker.bindPopup(popupContent, { minWidth: 260 });
                     }
                 });
+
+                // 6. สร้างชั้น Heatmap และดึงสีให้ตรงกับ Pin (3000 คือจุด Max)
+                if (heatPoints.length > 0) {
+                    var heat = L.heatLayer(heatPoints, {
+                        radius: 50,    // ขนาดการกระจายของวงความร้อน
+                        blur: 30,      // ความเบลอของขอบ
+                        maxZoom: 14,   // ระดับการซูมที่จะเห็นความร้อนชัดสุด
+                        max: 3000,     // ตั้งค่าจุดอิ่มตัวสูงสุดที่ 3000 คัน
+                        gradient: {    // ตั้งระดับสี (0.0 ถึง 1.0) ให้สอดคล้องกับ getColor
+                            0.33: '#008000',  // ~1000 คัน (เขียว)
+                            0.50: '#32CD32',  // ~1500 คัน (เขียวอ่อน)
+                            0.66: '#FFD700',  // ~2000 คัน (เหลือง/ส้มอ่อน)
+                            0.83: '#FFA500',  // ~2500 คัน (ส้ม)
+                            1.0: '#FF0000'    // 3000 คันขึ้นไป (แดง)
+                        }
+                    }).addTo(map);
+                }
             },
             error: function(err) {
                 console.error("เกิดข้อผิดพลาดในการโหลดไฟล์ CSV:", err);
