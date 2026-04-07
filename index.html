@@ -12,17 +12,24 @@
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;700&display=swap" rel="stylesheet">
     
     <style>
-        body { margin: 0; padding: 0; font-family: sans-serif; background-color: #1a1a1a; }
+        body { margin: 0; padding: 0; font-family: sans-serif; background-color: #e5e5e5; }
         #map { width: 100%; height: 100vh; }
         
+        /* =========================================
+           ฟิลเตอร์เปลี่ยนแผนที่ OSM ให้เป็นสีเทา
+           ========================================= */
+        .gray-theme {
+            filter: grayscale(100%) brightness(95%) contrast(110%);
+        }
+
         /* ตกแต่งกล่องข้อความ Pop-up เป็นสีดำ */
         .leaflet-popup-content-wrapper {
             background-color: #222222; /* พื้นหลังสีดำ/เทาเข้ม */
             color: #ffffff; /* ตัวหนังสือหลักสีขาว */
             border-radius: 12px;
             overflow: hidden;
-            font-family: 'Prompt', sans-serif; /* ให้ Pop-up ใช้ฟอนต์ Prompt */
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5); /* เพิ่มเงาให้ป๊อปอัปลอยเด่น */
+            font-family: 'Prompt', sans-serif;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
 
         /* ตกแต่งติ่งสามเหลี่ยมชี้ลงของ Pop-up ให้เป็นสีดำด้วย */
@@ -73,11 +80,10 @@
         // ส่วนจัดการ Layer (ชั้นข้อมูลแผนที่)
         // ==========================================
         
-        // แผนที่พื้นฐานโทนเทาเข้ม (CartoDB Dark Matter)
-        var darkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-            subdomains: 'abcd',
-            maxZoom: 20
+        // แผนที่พื้นฐาน OSM + ใส่คลาส CSS '.gray-theme' เพื่อทำให้เป็นสีเทา (แต่ป้ายภาษาไทยอยู่ครบ)
+        var osmGrayLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors',
+            className: 'gray-theme'
         }).addTo(map);
 
         // ใส่ API Key ของ TomTom
@@ -95,7 +101,7 @@
 
         // สร้างกล่องเมนูควบคุม Layer มุมขวาบน
         var baseMaps = {
-            "ความหนาแน่นการจราจรขอนแก่น": darkLayer
+            "ความหนาแน่นการจราจรขอนแก่น": osmGrayLayer
         };
         var overlayMaps = {
             "จุดปริมาณรถ (คัน/ชั่วโมง)": markerLayerGroup,
