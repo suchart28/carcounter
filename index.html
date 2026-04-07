@@ -44,12 +44,12 @@
 
         // 2. ฟังก์ชันกำหนดสีแบบไล่ระดับ (Gradient)
         function getColor(cars) {
-            if (cars >= 3000) return '#FF0000'; // แดง (3000 ขึ้นไป)
+            if (cars >= 3000) return '#FF0000'; // แดง
             if (cars >= 2500) return '#FF4500'; // แดงอมส้ม
-            if (cars >= 2000) return '#FFA500'; // ส้ม (ใกล้ 2000)
+            if (cars >= 2000) return '#FFA500'; // ส้ม
             if (cars >= 1500) return '#FFD700'; // เหลือง
-            if (cars >= 1000) return '#32CD32'; // เขียวอ่อน (ใกล้ 1000)
-            return '#008000';                   // เขียวเข้ม (น้อยกว่า 1000)
+            if (cars >= 1000) return '#32CD32'; // เขียวอ่อน
+            return '#008000';                   // เขียวเข้ม
         }
 
         Papa.parse(csvUrl, {
@@ -61,7 +61,7 @@
             },
             complete: function(results) {
                 var data = results.data;
-                var heatPoints = []; // ตัวแปรสำหรับเก็บข้อมูลพิกัดและความเข้มของ Heatmap
+                var heatPoints = []; 
                 
                 data.forEach(function(row) {
                     var lat = parseFloat(row['lat']); 
@@ -75,41 +75,46 @@
                         
                         var fillColor = getColor(carsPerHour);
 
-                        // 3. เก็บข้อมูลใส่ใน Array สำหรับทำ Heatmap
-                        // เก็บแบบ: [ละติจูด, ลองจิจูด, ความเข้ม/จำนวนรถ]
+                        // เก็บข้อมูลทำ Heatmap
                         heatPoints.push([lat, lng, carsPerHour]);
 
-                        // 4. สร้าง HTML สำหรับหมุดที่มีตัวเลขอยู่ตรงกลาง
+                        // 3. ปรับหมุดให้เล็กลง และย้ายตัวเลขมาไว้ด้านนอกวงกลม
                         var iconHtml = `
-                            <div style="
-                                background-color: ${fillColor};
-                                width: 45px;
-                                height: 45px;
-                                border-radius: 50%;
-                                border: 2.5px solid white;
-                                color: white;
-                                font-size: 11px;
-                                font-weight: bold;
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                                box-shadow: 0 3px 6px rgba(0,0,0,0.5);
-                            ">${carsPerHour.toLocaleString()}</div>
+                            <div style="position: relative; display: flex; align-items: center;">
+                                <div style="
+                                    background-color: ${fillColor};
+                                    width: 16px;
+                                    height: 16px;
+                                    border-radius: 50%;
+                                    border: 2px solid white;
+                                    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+                                "></div>
+                                <div style="
+                                    margin-left: 6px;
+                                    background: rgba(255, 255, 255, 0.85);
+                                    padding: 2px 6px;
+                                    border-radius: 4px;
+                                    font-size: 13px;
+                                    font-weight: bold;
+                                    color: ${fillColor};
+                                    border: 1px solid ${fillColor};
+                                    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+                                    white-space: nowrap;
+                                ">${carsPerHour.toLocaleString()}</div>
+                            </div>
                         `;
 
-                        // สร้าง Custom Icon 
                         var customIcon = L.divIcon({
                             html: iconHtml,
-                            className: 'custom-pin-container', // อ้างอิงจาก CSS ด้านบน
-                            iconSize: [45, 45],
-                            iconAnchor: [22.5, 22.5], // ให้จุดศูนย์กลางอยู่ตรงกลางวงกลม
-                            popupAnchor: [0, -22] // ให้ Pop-up เด้งเหนือวงกลมเล็กน้อย
+                            className: 'custom-pin-container',
+                            iconSize: [100, 20], // เผื่อความกว้างให้ป้ายตัวเลข
+                            iconAnchor: [8, 8],  // ให้จุดศูนย์กลางอยู่ที่วงกลม 16px พอดี (ครึ่งหนึ่งคือ 8)
+                            popupAnchor: [0, -10]
                         });
 
-                        // นำ Custom Icon ไปใส่เป็นหมุดบนแผนที่
                         var marker = L.marker([lat, lng], {icon: customIcon}).addTo(map);
 
-                        // 5. จัดการลิงก์วิดีโอ (เล่นอัตโนมัติ ซ่อนเมนู)
+                        // 4. จัดการลิงก์วิดีโอ (เล่นอัตโนมัติ)
                         var embedUrl = "";
                         if (videoUrl) {
                             if (videoUrl.includes("youtu.be/")) {
@@ -126,7 +131,6 @@
                             }
                         }
 
-                        // สร้างหน้าต่าง Pop-up
                         var popupContent = `
                             <div style="text-align: center;">
                                 <div style="font-size: 16px; margin-bottom: 8px; color: #333;">
@@ -142,19 +146,19 @@
                     }
                 });
 
-                // 6. สร้างชั้น Heatmap และดึงสีให้ตรงกับ Pin (3000 คือจุด Max)
+                // 5. ปรับ Heatmap ให้กว้างขึ้นและฟุ้งขึ้น (ซ้อนกันคล้ายเส้นถนน)
                 if (heatPoints.length > 0) {
                     var heat = L.heatLayer(heatPoints, {
-                        radius: 50,    // ขนาดการกระจายของวงความร้อน
-                        blur: 30,      // ความเบลอของขอบ
-                        maxZoom: 14,   // ระดับการซูมที่จะเห็นความร้อนชัดสุด
-                        max: 3000,     // ตั้งค่าจุดอิ่มตัวสูงสุดที่ 3000 คัน
-                        gradient: {    // ตั้งระดับสี (0.0 ถึง 1.0) ให้สอดคล้องกับ getColor
-                            0.33: '#008000',  // ~1000 คัน (เขียว)
-                            0.50: '#32CD32',  // ~1500 คัน (เขียวอ่อน)
-                            0.66: '#FFD700',  // ~2000 คัน (เหลือง/ส้มอ่อน)
-                            0.83: '#FFA500',  // ~2500 คัน (ส้ม)
-                            1.0: '#FF0000'    // 3000 คันขึ้นไป (แดง)
+                        radius: 80,    // ปรับให้กว้างขึ้น (เดิม 50)
+                        blur: 50,      // ปรับให้ฟุ้งกลืนกันมากขึ้น (เดิม 30)
+                        maxZoom: 14,   
+                        max: 3000,     
+                        gradient: {    
+                            0.33: '#008000',  
+                            0.50: '#32CD32',  
+                            0.66: '#FFD700',  
+                            0.83: '#FFA500',  
+                            1.0: '#FF0000'    
                         }
                     }).addTo(map);
                 }
