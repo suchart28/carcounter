@@ -45,7 +45,7 @@
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
 
-        // ใส่ API Key ของ TomTom 
+        // ใส่ API Key ของ TomTom (อัปเดตใหม่ล่าสุด)
         var tomtomApiKey = '8oHwI99AzpDA013yabYCuqOfZ4ffAW6t'; 
         
         // แผนที่จราจร (TomTom Traffic Flow) - ตั้งค่า absolute และบังคับเปิดแสดงอัตโนมัติ
@@ -58,7 +58,7 @@
         var markerLayerGroup = L.layerGroup().addTo(map); // ให้แสดงหมุดตั้งแต่เริ่ม
         var heatLayerGroup = L.layerGroup().addTo(map);   // ให้แสดง Heatmap ตั้งแต่เริ่ม
 
-        // สร้างกล่องเมนูควบคุม Layer มุมขวาบน (เปลี่ยนชื่อตามที่กำหนด)
+        // สร้างกล่องเมนูควบคุม Layer มุมขวาบน
         var baseMaps = {
             "แผนที่ปกติ (OSM)": osmLayer
         };
@@ -103,8 +103,8 @@
                     var rawCars = row['cars'] ? String(row['cars']).replace(/,/g, '') : "0";
                     var carsPerHour = parseFloat(rawCars);
                     
-                    // ดึงวิดีโอจากคอลัมน์ชื่อ video
-                    var videoUrl = row['video'] || ""; 
+                    // ดึงวิดีโอจากคอลัมน์ชื่อ link หรือ url
+                    var videoUrl = row['link'] || row['url'] || ""; 
 
                     if (!isNaN(lat) && !isNaN(lng)) {
                         
