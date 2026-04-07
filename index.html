@@ -15,11 +15,24 @@
         body { margin: 0; padding: 0; font-family: sans-serif; }
         #map { width: 100%; height: 100vh; }
         
-        /* ตกแต่งกล่องข้อความ Pop-up */
+        /* ตกแต่งกล่องข้อความ Pop-up เป็นสีดำ */
         .leaflet-popup-content-wrapper {
+            background-color: #222222; /* พื้นหลังสีดำ/เทาเข้ม */
+            color: #ffffff; /* ตัวหนังสือหลักสีขาว */
             border-radius: 12px;
             overflow: hidden;
             font-family: 'Prompt', sans-serif; /* ให้ Pop-up ใช้ฟอนต์ Prompt */
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5); /* เพิ่มเงาให้ป๊อปอัปลอยเด่น */
+        }
+
+        /* ตกแต่งติ่งสามเหลี่ยมชี้ลงของ Pop-up ให้เป็นสีดำด้วย */
+        .leaflet-popup-tip {
+            background-color: #222222;
+        }
+
+        /* ลบปุ่มกากบาทปิด (ถ้าอยากให้เป็นสีขาว ต้องตั้งค่าเพิ่ม หรือปล่อยไว้ปกติได้) */
+        .leaflet-container a.leaflet-popup-close-button {
+            color: #ffffff;
         }
 
         /* ลบพื้นหลังสีขาวเริ่มต้นของ divIcon ออก */
@@ -128,7 +141,7 @@
                         var fillColor = getColor(carsPerHour);
                         heatPoints.push([lat, lng, carsPerHour]);
 
-                        // สังเคราะห์ HTML สำหรับหมุด
+                        // สังเคราะห์ HTML สำหรับหมุด (พื้นขาว ตัวเลขดำ เหมือนเดิม)
                         var iconHtml = `
                             <div style="position: relative; display: flex; align-items: center; font-family: 'Prompt', sans-serif;">
                                 <div style="
@@ -169,7 +182,6 @@
                         var videoId = "";
                         var embedUrl = "";
                         if (videoUrl) {
-                            // ดึง Video ID เพื่อใช้สำหรับ playlist param (จำเป็นสำหรับการวนลูปบน YouTube)
                             if (videoUrl.includes("youtu.be/")) {
                                 videoId = videoUrl.split("youtu.be/")[1].split("?")[0];
                                 embedUrl = "https://www.youtube.com/embed/" + videoId;
@@ -177,18 +189,14 @@
                                 videoId = videoUrl.split("watch?v=")[1].split("&")[0];
                                 embedUrl = "https://www.youtube.com/embed/" + videoId;
                             } else if (videoUrl.includes("youtube.com/embed/")) {
-                                // กรณีเป็นลิงก์ embed มาอยู่แล้ว ลองดึง ID ออกมา
                                 videoId = videoUrl.split("youtube.com/embed/")[1].split("?")[0];
                                 embedUrl = videoUrl;
                             } else {
-                                embedUrl = videoUrl; // Fallback สำหรับลิงก์วิดีโอทั่วไป
+                                embedUrl = videoUrl; 
                             }
                             
                             if (embedUrl.includes("youtube.com")) {
                                 var separator = embedUrl.includes("?") ? "&" : "?";
-                                // เพิ่ม autoplay=1 (เล่นอัตโนมัติ), mute=1 (ต้องปิดเสียงเบราว์เซอร์ถึงจะยอมให้เล่นอัตโนมัติ)
-                                // controls=0 (ซ่อนแถบควบคุม), modestbranding=1 (ซ่อนโลโก้)
-                                // loop=1 และ playlist=videoId (ทำให้วนลูปสำเร็จ)
                                 var params = "autoplay=1&mute=1&controls=0&modestbranding=1&loop=1";
                                 if(videoId) {
                                     params += "&playlist=" + videoId;
@@ -197,14 +205,14 @@
                             }
                         }
 
-                        // สร้างหน้าต่าง Pop-up
+                        // สร้างหน้าต่าง Pop-up (ข้อความสีขาว สีตัวเลขตาม fillColor)
                         var popupContent = `
-                            <div style="text-align: center;">
-                                <div style="font-size: 16px; margin-bottom: 8px; color: #333;">
-                                    <b>ปริมาณรถ: <span style="font-size: 18px; color: ${fillColor};">${carsPerHour.toLocaleString()}</span> คัน/ชม.</b>
+                            <div style="text-align: center; padding-top: 5px;">
+                                <div style="font-size: 16px; margin-bottom: 10px; color: #ffffff;">
+                                    <b>ปริมาณรถ: <span style="font-size: 18px; color: ${fillColor}; text-shadow: 0px 0px 4px rgba(0,0,0,0.8);">${carsPerHour.toLocaleString()}</span> คัน/ชม.</b>
                                 </div>
                                 <iframe width="240" height="150" src="${embedUrl}" 
-                                style="border-radius: 8px; pointer-events: none;" 
+                                style="border-radius: 8px; pointer-events: none; border: 1px solid #444;" 
                                 frameborder="0" allow="autoplay; encrypted-media" allowfullscreen>
                                 </iframe>
                             </div>
