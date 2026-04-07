@@ -9,35 +9,17 @@
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;700&display=swap" rel="stylesheet">
     
     <style>
         body { margin: 0; padding: 0; font-family: sans-serif; }
         #map { width: 100%; height: 100vh; }
         
-        /* สไตล์สำหรับหัวเรื่องด้านบนตรงกลาง */
-        #map-title {
-            position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1000; /* ให้อยู่เหนือแผนที่ */
-            background: rgba(255, 255, 255, 0.9);
-            padding: 10px 30px;
-            border-radius: 30px; /* ขอบมน */
-            font-family: 'Prompt', sans-serif; /* ใช้ฟอนต์ Google Thai */
-            font-size: 22px;
-            color: #333333;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-            pointer-events: none; /* ปล่อยให้คลิกทะลุลงไปที่แผนที่ได้ */
-            white-space: nowrap;
-        }
-        
         /* ตกแต่งกล่องข้อความ Pop-up */
         .leaflet-popup-content-wrapper {
             border-radius: 12px;
             overflow: hidden;
-            font-family: 'Prompt', sans-serif; /* ให้ Pop-up ใช้ฟอนต์เดียวกันด้วย */
+            font-family: 'Prompt', sans-serif; /* ให้ Pop-up ใช้ฟอนต์ Prompt */
         }
 
         /* ลบพื้นหลังสีขาวเริ่มต้นของ divIcon ออก */
@@ -58,8 +40,6 @@
     </style>
 </head>
 <body>
-
-    <div id="map-title">แผนที่แสดงความหนาแน่นการจราจร จ.ขอนแก่น</div>
 
     <div id="map"></div>
     
@@ -82,7 +62,7 @@
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
 
-        // ใส่ API Key ของ TomTom จากผู้ใช้
+        // ใส่ API Key ของ TomTom
         var tomtomApiKey = '8oHwI99AzpDA013yabYCuqOfZ4ffAW6t'; 
         
         // แผนที่จราจร (TomTom Traffic Flow) - ตั้งค่า relative และบังคับเปิดแสดงอัตโนมัติ
@@ -95,7 +75,7 @@
         var markerLayerGroup = L.layerGroup().addTo(map); // ให้แสดงหมุดตั้งแต่เริ่ม
         var heatLayerGroup = L.layerGroup().addTo(map);   // ให้แสดง Heatmap ตั้งแต่เริ่ม
 
-        // สร้างกล่องเมนูควบคุม Layer มุมขวาบน (เปลี่ยนชื่อตามที่กำหนด)
+        // สร้างกล่องเมนูควบคุม Layer มุมขวาบน
         var baseMaps = {
             "แผนที่ปกติ (OSM)": osmLayer
         };
@@ -148,7 +128,7 @@
                         var fillColor = getColor(carsPerHour);
                         heatPoints.push([lat, lng, carsPerHour]);
 
-                        // สังเคราะห์ HTML สำหรับหมุด (เพิ่มฟอนต์ Prompt เข้าไปที่ตัวเลข)
+                        // สังเคราะห์ HTML สำหรับหมุด
                         var iconHtml = `
                             <div style="position: relative; display: flex; align-items: center; font-family: 'Prompt', sans-serif;">
                                 <div style="
