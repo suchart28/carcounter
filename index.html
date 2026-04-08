@@ -58,12 +58,11 @@
         // ==========================================
         // 1. จัดการ Panes (จัดลำดับชั้น Z-Index)
         // ==========================================
-        // เพื่อให้หน้ากากบังเฉพาะ TomTom แต่ไม่บังตัวแผนที่หลัก(กรณีดาวเทียม) และไม่บังหมุด
         map.createPane('trafficPane');
-        map.getPane('trafficPane').style.zIndex = 390; // อยู่เหนือแผนที่พื้นฐาน
+        map.getPane('trafficPane').style.zIndex = 390; 
 
         map.createPane('maskPane');
-        map.getPane('maskPane').style.zIndex = 395; // หน้ากากอยู่เหนือ TomTom
+        map.getPane('maskPane').style.zIndex = 395; 
 
         // ==========================================
         // 2. จัดการ Layer (ชั้นข้อมูลแผนที่)
@@ -82,7 +81,7 @@
         var trafficLayer = L.tileLayer(`https://api.tomtom.com/traffic/map/4/tile/flow/relative/{z}/{x}/{y}.png?key=${tomtomApiKey}`, {
             attribution: '&copy; TomTom Traffic',
             opacity: 0.8,
-            pane: 'trafficPane' // จับใส่ Pane ที่ตั้งค่าไว้
+            pane: 'trafficPane' 
         });
 
         var markerLayerGroup = L.layerGroup().addTo(map); 
@@ -98,11 +97,10 @@
             "สภาพจราจร (TomTom)": trafficLayer
         };
         
-        // เก็บเมนูไว้ในตัวแปร เพื่อนำ Mask มาแทรกเพิ่มทีหลัง
-        var layerControl = L.control.layers(baseMaps, overlayMaps, { collapsed: false }).addTo(map);
+        L.control.layers(baseMaps, overlayMaps, { collapsed: false }).addTo(map);
 
         // ==========================================
-        // 3. ดึงพิกัดเพื่อสร้างหน้ากาก (Mask) บังพื้นที่นอกขอนแก่น
+        // 3. ดึงพิกัดเพื่อสร้างหน้ากาก (Mask) แบบทำงานตลอดเวลา
         // ==========================================
         fetch('https://nominatim.openstreetmap.org/search?state=Khon%20Kaen&country=Thailand&polygon_geojson=1&format=json')
             .then(response => response.json())
@@ -110,12 +108,10 @@
                 if (data && data.length > 0) {
                     var geojson = data[0].geojson;
                     
-                    // สร้างพิกัดสี่เหลี่ยมคลุมทั้งโลก
                     var maskCoordinates = [
                         [[-180, -90], [180, -90], [180, 90], [-180, 90], [-180, -90]]
                     ];
                     
-                    // เจาะรูตรงกลางด้วยพิกัดรูปทรงขอนแก่น
                     if (geojson.type === 'Polygon') {
                         maskCoordinates.push(geojson.coordinates[0]);
                     } else if (geojson.type === 'MultiPolygon') {
@@ -131,18 +127,16 @@
                     
                     var maskLayer = L.geoJSON(maskPolygon, {
                         style: {
-                            fillColor: '#e5e5e5', // สีเดียวกับพื้นหลัง
-                            fillOpacity: 0.95,    // ความทึบ 95% 
-                            color: '#666666',     // สีเส้นขอบขอนแก่น
+                            fillColor: '#e5e5e5', 
+                            fillOpacity: 0.75,    // ปรับความจางลง (เปลี่ยนค่าน้อยลงเพื่อให้ใสขึ้น เช่น 0.6, 0.7)
+                            color: '#666666',     
                             weight: 2,
                             dashArray: '4, 4'
                         },
                         interactive: false,
-                        pane: 'maskPane' // วางในลำดับชั้นเหนือ TomTom 
-                    }).addTo(map); // เปิดเป็นค่าเริ่มต้น
+                        pane: 'maskPane' 
+                    }).addTo(map); // ใส่ลงแผนที่ทันทีและทำงานตลอดเวลา ไม่ต้องเอาไปใส่ในเมนู
 
-                    // เพิ่มปุ่มเปิดปิดหน้ากากในเมนู
-                    layerControl.addOverlay(maskLayer, "เน้นเฉพาะพื้นที่ขอนแก่น");
                 }
             })
             .catch(err => console.error('ไม่สามารถโหลดขอบเขตจังหวัดได้:', err));
