@@ -42,32 +42,28 @@
             pointer-events: none;
         }
 
-        /* ตกแต่งปุ่มลิงก์ไปหน้า Dashboard */
+        /* ตกแต่งปุ่มลิงก์ไปหน้า Dashboard (ย้ายมามุมขวาล่าง และปรับขนาดเล็กลง) */
         #btn-dashboard {
             position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
+            bottom: 20px;
+            right: 20px;
             z-index: 1000;
             background-color: #2c3e50;
             color: #ffffff;
-            padding: 12px 24px;
+            padding: 8px 16px;
             text-decoration: none;
             font-family: 'Prompt', sans-serif;
-            font-weight: 600;
-            font-size: 15px;
-            border-radius: 30px;
+            font-weight: 500;
+            font-size: 14px;
+            border-radius: 20px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
             border: 2px solid #ffffff;
             transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
         }
 
         #btn-dashboard:hover {
             background-color: #3498db;
-            transform: translateX(-50%) scale(1.05);
+            transform: scale(1.05);
         }
     </style>
 </head>
@@ -76,7 +72,7 @@
     <div id="map"></div>
     <img src="bussing.png" id="logo" alt="Logo">
     
-    <a href="dashboard.html" id="btn-dashboard">📊 ดูหน้า Dashboard (สถิติและกราฟ)</a>
+    <a href="dashboard.html" id="btn-dashboard">dashboard</a>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
