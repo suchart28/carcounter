@@ -88,13 +88,13 @@
         var heatLayerGroup = L.layerGroup();   
 
         var baseMaps = {
-            "ความหนาแน่นการจราจรขอนแก่น": osmGrayLayer,
+            "แผนที่ปกติ (OSM สีเทา)": osmGrayLayer,
             "ภาพถ่ายดาวเทียม": satelliteLayer
         };
         var overlayMaps = {
-            "จุดวัดปริมาณรถ": markerLayerGroup,
-            "แผนที่ความหนาแน่น": heatLayerGroup,
-            "สภาพการจราจรปัจจุบัน": trafficLayer
+            "จุดปริมาณรถ (คัน/ชั่วโมง)": markerLayerGroup,
+            "แผนที่ความร้อน (Heatmap)": heatLayerGroup,
+            "สภาพจราจร (TomTom)": trafficLayer
         };
         
         L.control.layers(baseMaps, overlayMaps, { collapsed: false }).addTo(map);
@@ -128,14 +128,14 @@
                     var maskLayer = L.geoJSON(maskPolygon, {
                         style: {
                             fillColor: '#e5e5e5', 
-                            fillOpacity: 0.75,    // ปรับความจางลง (เปลี่ยนค่าน้อยลงเพื่อให้ใสขึ้น เช่น 0.6, 0.7)
+                            fillOpacity: 0.75,    
                             color: '#666666',     
                             weight: 2,
                             dashArray: '4, 4'
                         },
                         interactive: false,
                         pane: 'maskPane' 
-                    }).addTo(map); // ใส่ลงแผนที่ทันทีและทำงานตลอดเวลา ไม่ต้องเอาไปใส่ในเมนู
+                    }).addTo(map); 
 
                 }
             })
@@ -172,6 +172,9 @@
                     var rawCars = row['cars'] ? String(row['cars']).replace(/,/g, '') : "0";
                     var carsPerHour = parseFloat(rawCars);
                     var videoUrl = row['link'] || row['url'] || ""; 
+                    
+                    // ดึงชื่อสถานที่จากคอลัมน์ name, location หรือ title
+                    var locationName = row['name'] || row['location'] || row['title'] || "จุดนับรถ";
 
                     if (!isNaN(lat) && !isNaN(lng)) {
                         
@@ -219,10 +222,14 @@
                             }
                         }
 
+                        // เพิ่มส่วนแสดงชื่อจุดนับรถ (locationName) ใน Pop-up
                         var popupContent = `
                             <div style="text-align: center; padding-top: 5px;">
-                                <div style="font-size: 16px; margin-bottom: 10px; color: #ffffff;">
-                                    <b>ปริมาณรถ: <span style="font-size: 18px; color: ${fillColor}; text-shadow: 0px 0px 4px rgba(0,0,0,0.8);">${carsPerHour.toLocaleString()}</span> คัน/ชม.</b>
+                                <div style="font-size: 16px; font-weight: 700; margin-bottom: 8px; color: #ffffff; border-bottom: 1px solid #555; padding-bottom: 8px;">
+                                    ${locationName}
+                                </div>
+                                <div style="font-size: 14px; margin-bottom: 10px; color: #eeeeee;">
+                                    ปริมาณรถ: <span style="font-size: 18px; color: ${fillColor}; text-shadow: 0px 0px 4px rgba(0,0,0,0.8); font-weight: bold;">${carsPerHour.toLocaleString()}</span> คัน/ชม.
                                 </div>
                                 <iframe width="240" height="150" src="${embedUrl}" style="border-radius: 8px; pointer-events: none; border: 1px solid #444;" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
                             </div>
