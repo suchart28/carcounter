@@ -88,13 +88,13 @@
         var heatLayerGroup = L.layerGroup();   
 
         var baseMaps = {
-            "แผนที่ปกติ (OSM สีเทา)": osmGrayLayer,
+            "แผนที่การจราจรขอนแก่น": osmGrayLayer,
             "ภาพถ่ายดาวเทียม": satelliteLayer
         };
         var overlayMaps = {
-            "จุดปริมาณรถ (คัน/ชั่วโมง)": markerLayerGroup,
-            "แผนที่ความร้อน (Heatmap)": heatLayerGroup,
-            "สภาพจราจร (TomTom)": trafficLayer
+            "จุดวัดปริมาณรถ": markerLayerGroup,
+            "แผนที่ความหนาแน่น": heatLayerGroup,
+            "สภาพจราจรปัจจุบัน": trafficLayer
         };
         
         L.control.layers(baseMaps, overlayMaps, { collapsed: false }).addTo(map);
