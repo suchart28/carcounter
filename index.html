@@ -15,14 +15,10 @@
         body { margin: 0; padding: 0; font-family: sans-serif; background-color: #e5e5e5; }
         #map { width: 100%; height: 100vh; }
         
-        /* =========================================
-           ฟิลเตอร์เปลี่ยนแผนที่ OSM ให้เป็นสีเทา
-           ========================================= */
         .gray-theme {
             filter: grayscale(100%) brightness(95%) contrast(110%);
         }
 
-        /* ตกแต่งกล่องข้อความ Pop-up เป็นสีดำ */
         .leaflet-popup-content-wrapper {
             background-color: #222222;
             color: #ffffff;
@@ -32,23 +28,11 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
 
-        .leaflet-popup-tip {
-            background-color: #222222;
-        }
-
-        .leaflet-container a.leaflet-popup-close-button {
-            color: #ffffff;
-        }
-        .leaflet-container a.leaflet-popup-close-button:hover {
-            color: #cccccc;
-        }
-
-        .custom-pin-container {
-            background: none;
-            border: none;
-        }
+        .leaflet-popup-tip { background-color: #222222; }
+        .leaflet-container a.leaflet-popup-close-button { color: #ffffff; }
+        .leaflet-container a.leaflet-popup-close-button:hover { color: #cccccc; }
+        .custom-pin-container { background: none; border: none; }
         
-        /* สไตล์สำหรับโลโก้ที่มุมล่างซ้าย */
         #logo {
             position: absolute;
             bottom: 20px;
@@ -62,7 +46,6 @@
 <body>
 
     <div id="map"></div>
-    
     <img src="bussing.png" id="logo" alt="Logo">
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -70,65 +53,112 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
 
     <script>
-        // 1. ศูนย์กลาง จ.ขอนแก่น
         var map = L.map('map').setView([16.4322, 102.8236], 12);
 
         // ==========================================
-        // ส่วนจัดการ Layer (ชั้นข้อมูลแผนที่)
+        // 1. จัดการ Panes (จัดลำดับชั้น Z-Index)
         // ==========================================
-        
-        // [1] แผนที่พื้นฐาน: OSM แบบเทา (ตั้งให้แสดงเป็นค่าเริ่มต้น โดยใส่ .addTo(map))
+        // เพื่อให้หน้ากากบังเฉพาะ TomTom แต่ไม่บังตัวแผนที่หลัก(กรณีดาวเทียม) และไม่บังหมุด
+        map.createPane('trafficPane');
+        map.getPane('trafficPane').style.zIndex = 390; // อยู่เหนือแผนที่พื้นฐาน
+
+        map.createPane('maskPane');
+        map.getPane('maskPane').style.zIndex = 395; // หน้ากากอยู่เหนือ TomTom
+
+        // ==========================================
+        // 2. จัดการ Layer (ชั้นข้อมูลแผนที่)
+        // ==========================================
         var osmGrayLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors',
             className: 'gray-theme'
         }).addTo(map);
 
-        // [2] แผนที่พื้นฐาน: ภาพถ่ายดาวเทียม (Esri World Imagery)
         var satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+            attribution: 'Tiles &copy; Esri &mdash; Source: Esri...'
         });
 
-        // ใส่ API Key ของ TomTom
         var tomtomApiKey = '8oHwI99AzpDA013yabYCuqOfZ4ffAW6t'; 
         
-        // [3] แผนที่จราจร: TomTom Traffic Flow (เอา .addTo(map) ออก เพื่อให้ปิดไว้เป็นค่าเริ่มต้น)
         var trafficLayer = L.tileLayer(`https://api.tomtom.com/traffic/map/4/tile/flow/relative/{z}/{x}/{y}.png?key=${tomtomApiKey}`, {
             attribution: '&copy; TomTom Traffic',
-            opacity: 0.8 
+            opacity: 0.8,
+            pane: 'trafficPane' // จับใส่ Pane ที่ตั้งค่าไว้
         });
 
-        // กลุ่ม Layer สำหรับ หมุด (ใส่ .addTo(map) เพื่อให้เปิดไว้เป็นค่าเริ่มต้น)
         var markerLayerGroup = L.layerGroup().addTo(map); 
-        
-        // กลุ่ม Layer สำหรับ Heatmap (ไม่ใส่ .addTo(map) เพื่อให้ปิดไว้เป็นค่าเริ่มต้น)
         var heatLayerGroup = L.layerGroup();   
 
-        // สร้างกล่องเมนูควบคุม Layer มุมขวาบน
         var baseMaps = {
-            "ความหนาแน่นการจราจรขอนแก่น": osmGrayLayer,
+            "แผนที่ปกติ (OSM สีเทา)": osmGrayLayer,
             "ภาพถ่ายดาวเทียม": satelliteLayer
         };
         var overlayMaps = {
-            "จุดวัดปริมาณรถ(คัน/ชั่วโมง)": markerLayerGroup,
-            "แผนที่ความหนาแน่น": heatLayerGroup,
-            "สภาพการจราจรปัจจุบัน": trafficLayer
+            "จุดปริมาณรถ (คัน/ชั่วโมง)": markerLayerGroup,
+            "แผนที่ความร้อน (Heatmap)": heatLayerGroup,
+            "สภาพจราจร (TomTom)": trafficLayer
         };
-        L.control.layers(baseMaps, overlayMaps, { collapsed: false }).addTo(map);
-
+        
+        // เก็บเมนูไว้ในตัวแปร เพื่อนำ Mask มาแทรกเพิ่มทีหลัง
+        var layerControl = L.control.layers(baseMaps, overlayMaps, { collapsed: false }).addTo(map);
 
         // ==========================================
-        // ส่วนดึงข้อมูลและปักหมุด
+        // 3. ดึงพิกัดเพื่อสร้างหน้ากาก (Mask) บังพื้นที่นอกขอนแก่น
+        // ==========================================
+        fetch('https://nominatim.openstreetmap.org/search?state=Khon%20Kaen&country=Thailand&polygon_geojson=1&format=json')
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.length > 0) {
+                    var geojson = data[0].geojson;
+                    
+                    // สร้างพิกัดสี่เหลี่ยมคลุมทั้งโลก
+                    var maskCoordinates = [
+                        [[-180, -90], [180, -90], [180, 90], [-180, 90], [-180, -90]]
+                    ];
+                    
+                    // เจาะรูตรงกลางด้วยพิกัดรูปทรงขอนแก่น
+                    if (geojson.type === 'Polygon') {
+                        maskCoordinates.push(geojson.coordinates[0]);
+                    } else if (geojson.type === 'MultiPolygon') {
+                        geojson.coordinates.forEach(function(poly) {
+                            maskCoordinates.push(poly[0]);
+                        });
+                    }
+                    
+                    var maskPolygon = {
+                        "type": "Feature",
+                        "geometry": { "type": "Polygon", "coordinates": maskCoordinates }
+                    };
+                    
+                    var maskLayer = L.geoJSON(maskPolygon, {
+                        style: {
+                            fillColor: '#e5e5e5', // สีเดียวกับพื้นหลัง
+                            fillOpacity: 0.95,    // ความทึบ 95% 
+                            color: '#666666',     // สีเส้นขอบขอนแก่น
+                            weight: 2,
+                            dashArray: '4, 4'
+                        },
+                        interactive: false,
+                        pane: 'maskPane' // วางในลำดับชั้นเหนือ TomTom 
+                    }).addTo(map); // เปิดเป็นค่าเริ่มต้น
+
+                    // เพิ่มปุ่มเปิดปิดหน้ากากในเมนู
+                    layerControl.addOverlay(maskLayer, "เน้นเฉพาะพื้นที่ขอนแก่น");
+                }
+            })
+            .catch(err => console.error('ไม่สามารถโหลดขอบเขตจังหวัดได้:', err));
+
+        // ==========================================
+        // 4. ส่วนดึงข้อมูลปริมาณรถและปักหมุด
         // ==========================================
         var csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTBl_7t5r5vFUW_QbxVF4h2FxfAaPP7vdGvXEsJ8kMxAZ0wZHlM42KPCCnjq0yTlXSyaPs1-kpyy8GP/pub?gid=2023562744&single=true&output=csv';
 
-        // ฟังก์ชันกำหนดสีวงกลม
         function getColor(cars) {
-            if (cars >= 3000) return '#FF0000'; // แดง
-            if (cars >= 2500) return '#FF4500'; // แดงอมส้ม
-            if (cars >= 2000) return '#FFA500'; // ส้ม
-            if (cars >= 1500) return '#FFD700'; // เหลือง
-            if (cars >= 1000) return '#32CD32'; // เขียวอ่อน
-            return '#008000';                   // เขียวเข้ม
+            if (cars >= 3000) return '#FF0000'; 
+            if (cars >= 2500) return '#FF4500'; 
+            if (cars >= 2000) return '#FFA500'; 
+            if (cars >= 1500) return '#FFD700'; 
+            if (cars >= 1000) return '#32CD32'; 
+            return '#008000';                   
         }
 
         Papa.parse(csvUrl, {
@@ -145,11 +175,8 @@
                 data.forEach(function(row) {
                     var lat = parseFloat(row['lat']); 
                     var lng = parseFloat(row['lag'] || row['long']); 
-                    
                     var rawCars = row['cars'] ? String(row['cars']).replace(/,/g, '') : "0";
                     var carsPerHour = parseFloat(rawCars);
-                    
-                    // ดึงวิดีโอจากคอลัมน์ชื่อ link หรือ url
                     var videoUrl = row['link'] || row['url'] || ""; 
 
                     if (!isNaN(lat) && !isNaN(lng)) {
@@ -157,29 +184,10 @@
                         var fillColor = getColor(carsPerHour);
                         heatPoints.push([lat, lng, carsPerHour]);
 
-                        // สังเคราะห์ HTML สำหรับหมุด
                         var iconHtml = `
                             <div style="position: relative; display: flex; align-items: center; font-family: 'Prompt', sans-serif;">
-                                <div style="
-                                    background-color: ${fillColor};
-                                    width: 16px;
-                                    height: 16px;
-                                    border-radius: 50%;
-                                    border: 2px solid white;
-                                    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
-                                "></div>
-                                <div style="
-                                    margin-left: 6px;
-                                    background: #ffffff;
-                                    padding: 2px 8px;
-                                    border-radius: 4px;
-                                    font-size: 13px;
-                                    font-weight: 500;
-                                    color: #000000;
-                                    border: 1px solid #cccccc;
-                                    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-                                    white-space: nowrap;
-                                ">${carsPerHour.toLocaleString()}</div>
+                                <div style="background-color: ${fillColor}; width: 16px; height: 16px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.5);"></div>
+                                <div style="margin-left: 6px; background: #ffffff; padding: 2px 8px; border-radius: 4px; font-size: 13px; font-weight: 500; color: #000000; border: 1px solid #cccccc; box-shadow: 0 1px 3px rgba(0,0,0,0.3); white-space: nowrap;">${carsPerHour.toLocaleString()}</div>
                             </div>
                         `;
 
@@ -191,10 +199,8 @@
                             popupAnchor: [0, -10]
                         });
 
-                        // นำ Custom Icon ไปใส่เป็นหมุดบนแผนที่ ภายใน markerLayerGroup
                         var marker = L.marker([lat, lng], {icon: customIcon}).addTo(markerLayerGroup);
 
-                        // จัดการลิงก์วิดีโอ (เล่นอัตโนมัติ ซ่อนเมนู และวนลูป)
                         var videoId = "";
                         var embedUrl = "";
                         if (videoUrl) {
@@ -214,43 +220,27 @@
                             if (embedUrl.includes("youtube.com")) {
                                 var separator = embedUrl.includes("?") ? "&" : "?";
                                 var params = "autoplay=1&mute=1&controls=0&modestbranding=1&loop=1";
-                                if(videoId) {
-                                    params += "&playlist=" + videoId;
-                                }
+                                if(videoId) { params += "&playlist=" + videoId; }
                                 embedUrl += separator + params;
                             }
                         }
 
-                        // สร้างหน้าต่าง Pop-up
                         var popupContent = `
                             <div style="text-align: center; padding-top: 5px;">
                                 <div style="font-size: 16px; margin-bottom: 10px; color: #ffffff;">
                                     <b>ปริมาณรถ: <span style="font-size: 18px; color: ${fillColor}; text-shadow: 0px 0px 4px rgba(0,0,0,0.8);">${carsPerHour.toLocaleString()}</span> คัน/ชม.</b>
                                 </div>
-                                <iframe width="240" height="150" src="${embedUrl}" 
-                                style="border-radius: 8px; pointer-events: none; border: 1px solid #444;" 
-                                frameborder="0" allow="autoplay; encrypted-media" allowfullscreen>
-                                </iframe>
+                                <iframe width="240" height="150" src="${embedUrl}" style="border-radius: 8px; pointer-events: none; border: 1px solid #444;" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
                             </div>
                         `;
                         marker.bindPopup(popupContent, { minWidth: 260 });
                     }
                 });
 
-                // สร้างชั้น Heatmap ภายใน heatLayerGroup (ถึงจะปิดอยู่ แต่ต้องสร้างข้อมูลไว้ก่อน)
                 if (heatPoints.length > 0) {
                     var heat = L.heatLayer(heatPoints, {
-                        radius: 80,    
-                        blur: 50,      
-                        maxZoom: 14,   
-                        max: 3000,     
-                        gradient: {    
-                            0.33: '#008000',  
-                            0.50: '#32CD32',  
-                            0.66: '#FFD700',  
-                            0.83: '#FFA500',  
-                            1.0: '#FF0000'    
-                        }
+                        radius: 80, blur: 50, maxZoom: 14, max: 3000,     
+                        gradient: { 0.33: '#008000', 0.50: '#32CD32', 0.66: '#FFD700', 0.83: '#FFA500', 1.0: '#FF0000' }
                     });
                     heatLayerGroup.addLayer(heat);
                 }
